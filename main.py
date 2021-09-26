@@ -146,23 +146,29 @@ def triangles(points, show = False):
 
     return tri.simplices
 
-## Compute Affine matrix
-def affine(triangle, target):
+def computeAffine(triangle, target):
+    """ 
+    The affine matrix transformation happens here! 
+    Translates from TRIANGLE to TARGET.
+    """
     A = np.matrix([triangle[:,0], triangle[:, 1], [1, 1, 1]])
     B = np.matrix([target[:,0], target[:, 1], [1, 1, 1]])
     return B * np.linalg.inv(A)
 
-## Get triangle coordinates in image
 def triangle_bool_matrix(triangle, image_shape):
+    """ Masks the triangle of the image we want to add in to a result. """
     tri_buf = triangle
     shape = (image_shape[1], image_shape[0], image_shape[2])
     points = draw.polygon(tri_buf[:,0], tri_buf[:,1], shape=shape)
     return np.vstack([points, np.ones(len(points[0]))])
 
-
-## Apply inverse transformation based on mask
 def apply_masked_affine(mask, image, src_tri, target_tri, population=True):
-    A = affine(src_tri, target_tri)
+    """ 
+    Generates an image the same size as IMAGE, inserts the pixels surrounded by
+    SRC_TRI warped into the shape of TARGET_TRI, and discards the rest.
+    Returns the triangular set of pixels in the correct coordinates.
+    """
+    A = computeAffine(src_tri, target_tri)
 
     final_mask = mask.copy()
     final_mask[0] = mask[0]
@@ -465,6 +471,7 @@ def parse_points(file):
 #show(transform("nick", "gigachad"))
 
 def generate_video(src_name, dst_name):
+    """ Chain starting from image generation all the way to an output mp4."""
     transform_frames(src_name, dst_name, 360)
     cmd = ['ffmpeg', '-r', '60', '-i', './out/' + src_name + '/%d.jpg', '-vf', "pad=ceil(iw/2)*2:ceil(ih/2)*2", 'output.mp4']
     retcode = subprocess.call(cmd)
@@ -473,6 +480,7 @@ def generate_video(src_name, dst_name):
 
 
 def process(src_name, dst_name, points = 16):
+    """ Chain starting from specifying images and how many points to add to generating a full video. """
     src = read_png(src_name, "uint8")
     dst = read_png(dst_name, "uint8")
     select_points(src, points, src_name)
@@ -483,6 +491,7 @@ def process(src_name, dst_name, points = 16):
 #process("brandon_fan", "fan", 24)
 
 def generate_gigachad_video():
+    """ Hardcodes the process of creating the original Nick-to-Gigachad video. """
     #transform_frames("nick", "gigachad", 360)
     cmd = ['ffmpeg', '-r', '60', '-i', './out/nick/%d.jpg', '-vf', "pad=ceil(iw/2)*2:ceil(ih/2)*2", 'output.mp4']
     retcode = subprocess.call(cmd)
