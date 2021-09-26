@@ -506,6 +506,7 @@ def select_nick_gigachad_points():
 
 #select_nick_gigachad_points()
 #display_points("gigachad", "nick")
+display_points("brandon_fan", "fan")
 
 def test_serialization():
     selected = select_points(chad, 8, "gigachad")
