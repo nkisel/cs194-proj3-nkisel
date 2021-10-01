@@ -371,16 +371,23 @@ def transform_frames_many(sequence, frames=60, interp_func=ease_in_out):
     Generate a sequence of images that progressively morph SEVERAL objects.
     """
 
+    frame = 0
     for i in range(len(sequence) - 1):
 
         # Retrieve actual images referenced by the names
         src = read_png(sequence[i])
         dst = read_png(sequence[i + 1])
 
-        if src[0,0,:].max(axis=0) > 1:
+        if len(src.shape) == 2:
+            src = np.dstack([src, src, src])
+        
+        if src[src.shape[0] // 2, src.shape[1] // 2, :].max(axis=0) > 1:
             src = src / 255
 
-        if dst[0,0,:].max(axis=0) > 1:
+        if len(dst.shape) == 2:
+            dst = np.dstack([dst, dst, dst])
+
+        if dst[src.shape[0] // 2, src.shape[1] // 2, :].max(axis=0) > 1:
             dst = dst / 255
 
         # Retrieve serialized points for each image
@@ -393,7 +400,6 @@ def transform_frames_many(sequence, frames=60, interp_func=ease_in_out):
         # Alternatively, uncomment the next line to go in the reverse direction.
         # src_simplices = triangles(dst_points, False)
         
-        frame = 0
         for mix in interp_func(range(frames)):
             print(mix)
             # Create a blank canvas to paint our image on.
@@ -552,7 +558,7 @@ def process(src_name, dst_name, points = 16):
 
 def generate_gigachad_video():
     """ Hardcodes the process of creating the original Nick-to-Gigachad video. """
-    #transform_frames("nick", "gigachad", 360)
+    transform_frames("nick", "gigachad", 360)
     cmd = ['ffmpeg', '-r', '60', '-i', './out/nick/%d.jpg', '-vf', "pad=ceil(iw/2)*2:ceil(ih/2)*2", 'output.mp4']
     retcode = subprocess.call(cmd)
     if not retcode == 0:
@@ -614,9 +620,22 @@ show(transform("186a", "population_mean", population = True))"""
 # Extrapolate!
 #transform_frames("gigachad", "nick", 6, interp_func=linear_extrapolate)
 
-# Music video
-bodybuilders = ["scott", "oliva", "schwarzeneggar", "zane", "coleman", "cutler"]
-for bodybuilder in bodybuilders:
-    select_points(read_png(bodybuilder), 12, bodybuilder)
-transform_frames_many(bodybuilders)
+def generate_bodybuilder_video(select_points = False):
+    
+    # Music video
+    bodybuilders = ["scott", "oliva", "schwarzeneggar", "zane", "coleman", "cutler", "scott"]
+    if select_points:
+        for bodybuilder in bodybuilders:
+            img = read_png(bodybuilder)
+            if len(img.shape) == 2:
+                img = np.dstack([img, img, img])
+            if max(img[0,:, 0]) > 1:
+                img = img / 255
+            select_points(img, 12, bodybuilder)
+    transform_frames_many(bodybuilders, frames=120)
+    cmd = ['ffmpeg', '-r', '60', '-i', './out/scott/%d.jpg', '-vf', "pad=ceil(iw/2)*2:ceil(ih/2)*2", 'bodybuilder.mp4']
+    retcode = subprocess.call(cmd)
+    if not retcode == 0:
+        raise ValueError('Error {} executing command: {}'.format(retcode, ' '.join(cmd)))
 
+generate_bodybuilder_video()
