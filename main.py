@@ -280,9 +280,9 @@ def easeInOutExpo(x):
     if x == 1:
         return 1
     if x < 0.5:
-        return pow(2, 20 * x - 10) / 2
+        return pow(2, 10 * x - 5) / 2
     else:
-        return (2 - pow(2, -20 * x + 10)) / 2
+        return (2 - pow(2, -10 * x + 5)) / 2
 
 def ease_in_out(frame_count):
     """ Slow to start off, a quick transition in the middle, and a slow finish. """
@@ -299,7 +299,7 @@ def mix(mix_value):
 
 def transform_frames(i_am, become, frames=60, interp_func=ease_in_out):
     """ 
-    Generate a sequence of images that progressively morph two .
+    Generate a sequence of images that progressively morph two objects.
 
     Inputs:
         I_AM - the base name of a source image & its corresponding files.
@@ -366,11 +366,71 @@ def transform_frames(i_am, become, frames=60, interp_func=ease_in_out):
 
     return
 
+def transform_frames_many(sequence, frames=60, interp_func=ease_in_out):
+    """ 
+    Generate a sequence of images that progressively morph SEVERAL objects.
+    """
+
+    for i in range(len(sequence) - 1):
+
+        # Retrieve actual images referenced by the names
+        src = read_png(sequence[i])
+        dst = read_png(sequence[i + 1])
+
+        if src[0,0,:].max(axis=0) > 1:
+            src = src / 255
+
+        if dst[0,0,:].max(axis=0) > 1:
+            dst = dst / 255
+
+        # Retrieve serialized points for each image
+        src_points = retrieve_points(sequence[i])
+        dst_points = retrieve_points(sequence[i + 1])
+
+        # Generate triangles based on the points defined in both images.
+        src_simplices = triangles(src_points, False)
+
+        # Alternatively, uncomment the next line to go in the reverse direction.
+        # src_simplices = triangles(dst_points, False)
+        
+        frame = 0
+        for mix in interp_func(range(frames)):
+            print(mix)
+            # Create a blank canvas to paint our image on.
+            result = np.zeros_like(src)
+
+            # For each triangle,
+            for i in range(len(src_simplices)):
+                
+                # Gather the vertices specified by this triangle.
+                #
+                # The below is not a typo; we want to use SRC's simplices for both
+                # images to ensure that each triangle refers to the same points,
+                # specifically because TRIANGLES can return totally different
+                # edges even with similar points.
+                src_tri = src_points[src_simplices[i]]
+                dst_tri = dst_points[src_simplices[i]]
+                
+                interp_tri = (src_tri * (1 - mix)) + (dst_tri * mix)
+
+                # Mask out the SRC triangle and apply the matrix that 
+                # transforms it into the DST triangle.
+                target_mask = triangle_bool_matrix(interp_tri, dst.shape)
+                transformed_src_tri = apply_masked_affine(target_mask, src, src_tri, interp_tri)
+                transformed_dst_tri = apply_masked_affine(target_mask, dst, dst_tri, interp_tri)
+
+                result += ((1 - mix) * transformed_src_tri) + (mix * transformed_dst_tri)
+
+            save(result, "out/" + sequence[0] + "/" + str(frame) + ".jpg")
+            frame += 1
+
+    return
+
 def midway_image(src, dst):
     """ Calculates the midway image between SRC and DST. """
     transform_frames(src, dst, frames = 1, interp_func = midway)
 
-midway_image("fan", "brandon_fan")
+#midway_image("fan", "brandon_fan")
 
 def population_average():
     dst_points, individual_points = read_population_points()
@@ -506,7 +566,7 @@ def select_nick_gigachad_points():
 
 #select_nick_gigachad_points()
 #display_points("gigachad", "nick")
-display_points("brandon_fan", "fan")
+#display_points("brandon_fan", "fan")
 
 def test_serialization():
     selected = select_points(chad, 8, "gigachad")
@@ -553,4 +613,10 @@ show(transform("186a", "population_mean", population = True))"""
 
 # Extrapolate!
 #transform_frames("gigachad", "nick", 6, interp_func=linear_extrapolate)
+
+# Music video
+bodybuilders = ["scott", "oliva", "schwarzeneggar", "zane", "coleman", "cutler"]
+for bodybuilder in bodybuilders:
+    select_points(read_png(bodybuilder), 12, bodybuilder)
+transform_frames_many(bodybuilders)
 
