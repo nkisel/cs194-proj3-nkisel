@@ -99,6 +99,25 @@ def display_points(imageA_name, imageB_name):
     skio.imshow(np.concatenate([point_display_A, point_display_B]))
     skio.show()
 
+def display_population_points(name):
+    """ Display the points of an image from the dataset folder rather than the base img folder. """
+    # Read from the POPULATION folder rather than the base folder.
+    # pointsA = retrieve_points(name)
+    pointsA = parse_points(name + ".pts")
+
+    # Read from the POPULATION folder rather than the base folder.
+    imgA = skio.imread("img/population/" + name + ".jpg")
+
+    # Use the population mean in place:
+    # imgA = skio.imread("img/population_mean.jpg")
+    
+    plt.imshow(imgA)
+    for i, point in enumerate(pointsA):
+        plt.scatter(point[0], point[1], color="red")
+        plt.annotate(str(i), (point[0], point[1]))
+    plt.savefig(jpg_name(re.split("\.", name)[-1] + "points"))
+    plt.close()
+
 def interpolate(a, b, mix):
     """ 
     Interpolate between point A & point B by MIX.
@@ -155,13 +174,6 @@ def computeAffine(triangle, target):
     B = np.matrix([target[:,0], target[:, 1], [1, 1, 1]])
     return B * np.linalg.inv(A)
 
-def triangle_bool_matrix(triangle, image_shape):
-    """ Masks the triangle of the image we want to add in to a result. """
-    tri_buf = triangle
-    shape = (image_shape[1], image_shape[0], image_shape[2])
-    points = draw.polygon(tri_buf[:,0], tri_buf[:,1], shape=shape)
-    return np.vstack([points, np.ones(len(points[0]))])
-
 def apply_masked_affine(mask, image, src_tri, target_tri, population=True):
     """ 
     Generates an image the same size as IMAGE, inserts the pixels surrounded by
@@ -188,6 +200,7 @@ def apply_masked_affine(mask, image, src_tri, target_tri, population=True):
     return canvas
 
 def triangle_bool_matrix(triangle, image_shape):
+    """ Masks the triangle of the image we want to add in to a result. """
     tri_buf = triangle
     if len(image_shape) == 2:
         shape = (image_shape[1], image_shape[0], 1)
@@ -240,7 +253,6 @@ def transform(i_am, become, jpg = False, population = False):
 
     # Generate triangles based on the points defined in both images.
     src_simplices = triangles(dst_points, False)
-    dst_simplices = triangles(dst_points, False)
     
     # Create a blank canvas to paint our image on.
     result = np.zeros_like(src)
@@ -530,13 +542,19 @@ def parse_points(file):
         point_tuples.append((float(points[0]), float(points[1])))
     return point_tuples
 
-#save(population_average(), "out/population_mean.jpg")
+def select_nick_gigachad_points():
+    select_points(nick, 36, "nick")
+    select_points(chad, 36, "gigachad")
 
-#show(transform_frames("nick", "gigachad", 6))
-#transform_frames("gigachad", "nick", 6, interp_func=linear_extrapolate)
-#show(transform("nick", "gigachad"))
+#select_nick_gigachad_points()
+#display_points("gigachad", "nick")
+#display_points("brandon_fan", "fan")
 
-def generate_video(src_name, dst_name):
+#display_population_points("1a")
+#display_points("nick_population", "nick1")
+#display_population_points("population_mean")
+
+def points_to_video(src_name, dst_name):
     """ Chain starting from image generation all the way to an output mp4."""
     transform_frames(src_name, dst_name, 360)
     cmd = ['ffmpeg', '-r', '60', '-i', './out/' + src_name + '/%d.jpg', '-vf', "pad=ceil(iw/2)*2:ceil(ih/2)*2", 'output.mp4']
@@ -544,17 +562,14 @@ def generate_video(src_name, dst_name):
     if not retcode == 0:
         raise ValueError('Error {} executing command: {}'.format(retcode, ' '.join(cmd)))
 
-
-def process(src_name, dst_name, points = 16):
+def generate_video(src_name, dst_name, points = 16):
     """ Chain starting from specifying images and how many points to add to generating a full video. """
     src = read_png(src_name, "uint8")
     dst = read_png(dst_name, "uint8")
     select_points(src, points, src_name)
     select_points(dst, points, dst_name)
     
-    generate_video(src_name, dst_name)
-
-#process("brandon_fan", "fan", 24)
+    points_to_video(src_name, dst_name)
 
 def generate_gigachad_video():
     """ Hardcodes the process of creating the original Nick-to-Gigachad video. """
@@ -564,64 +579,39 @@ def generate_gigachad_video():
     if not retcode == 0:
         raise ValueError('Error {} executing command: {}'.format(retcode, ' '.join(cmd)))
 
-#generate_gigachad_video()
+###############################################################
+# Demos
 
-def select_nick_gigachad_points():
-    select_points(nick, 36, "nick")
-    select_points(chad, 36, "gigachad")
+# Try generating a morph video by selecting your own points
+# generate_video("brandon_fan", "fan", 24)
 
-#select_nick_gigachad_points()
-#display_points("gigachad", "nick")
-#display_points("brandon_fan", "fan")
+# Use the provided points to recreate the same result as in the website.
+# generate_gigachad_video()
 
-def test_serialization():
-    selected = select_points(chad, 8, "gigachad")
-    serialized = retrieve_points("gigachad")
-    assert(selected == serialized)
+def nick_as_population_average():
+    """ Compute the population average, then show my face as the population average. """
+    population_average()
+    show(transform("nick_population", "population_mean", jpg=True))
 
-#test_serialization()
+nick_as_population_average()
 
-#nick_population = skio.imread("img/nick_population.jpg")
-#select_points(nick_population, 46, "nick_population")
-
-def display_population_points(name):
-    # Read from the POPULATION folder rather than the base folder.
-    # pointsA = retrieve_points(name)
-    pointsA = parse_points(name + ".pts")
-
-    # Read from the POPULATION folder rather than the base folder.
-    # imgA = skio.imread("img/population/" + name + ".jpg")
-    imgA = skio.imread("img/population_mean.jpg")
-    
-    plt.imshow(imgA)
-    for i, point in enumerate(pointsA):
-        plt.scatter(point[0], point[1], color="red")
-        plt.annotate(str(i), (point[0], point[1]))
-    plt.savefig(jpg_name(re.split("\.", name)[-1] + "points"))
-    plt.close()
-
-#display_population_points("1a")
-#display_points("nick_population", "nick1")
-#display_population_points("population_mean")
-
-# Compute the population average before showing my face as the population average.
-#show(transform("nick_population", "population_mean", jpg=True))
-
-"""show(population_average())
-show(transform("4a", "population_mean", population = True))
-show(transform("16b", "population_mean", population = True))
-show(transform("61a", "population_mean", population = True))
-show(transform("61b", "population_mean", population = True))
-show(transform("161a", "population_mean", population = True))
-show(transform("149b", "population_mean", population = True))
-show(transform("194a", "population_mean", population = True))
-show(transform("186a", "population_mean", population = True))"""
+def morph_dataset():
+    """ Morph a number of dataset images to the dataset average. """
+    show(population_average())
+    show(transform("4a", "population_mean", population = True))
+    show(transform("16b", "population_mean", population = True))
+    show(transform("61a", "population_mean", population = True))
+    show(transform("61b", "population_mean", population = True))
+    show(transform("161a", "population_mean", population = True))
+    show(transform("149b", "population_mean", population = True))
+    show(transform("194a", "population_mean", population = True))
+    show(transform("186a", "population_mean", population = True))
 
 # Extrapolate!
-#transform_frames("gigachad", "nick", 6, interp_func=linear_extrapolate)
+# transform_frames("gigachad", "nick", 6, interp_func=linear_extrapolate)
 
 def generate_bodybuilder_video(select_points = False):
-    
+    """ Bell & whistle. """
     # Music video
     bodybuilders = ["scott", "oliva", "schwarzeneggar", "zane", "coleman", "cutler", "scott"]
     if select_points:
@@ -638,4 +628,4 @@ def generate_bodybuilder_video(select_points = False):
     if not retcode == 0:
         raise ValueError('Error {} executing command: {}'.format(retcode, ' '.join(cmd)))
 
-generate_bodybuilder_video()
+#generate_bodybuilder_video()
