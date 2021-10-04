@@ -178,8 +178,8 @@ def apply_masked_affine(mask, image, src_tri, target_tri, population=True):
     cc, rr, _ = affined
     
     # If, by chance, mask indices are out of range, try clipping these values. 
-    #cc = np.clip(cc, 0, image.shape[0])
-    #rr = np.clip(rr, 0, image.shape[1])
+    #cc = np.clip(cc, 0, image.shape[0] - 1)
+    #rr = np.clip(rr, 0, image.shape[1] - 1)
 
     final_mask = final_mask.astype(np.int)
     canvas = np.zeros_like(image)
@@ -188,6 +188,7 @@ def apply_masked_affine(mask, image, src_tri, target_tri, population=True):
     return canvas
 
 def triangle_bool_matrix(triangle, image_shape):
+    """ Masks out the pixels inside TRIANGLE. """
     tri_buf = triangle
     if len(image_shape) == 2:
         shape = (image_shape[1], image_shape[0], 1)
@@ -335,6 +336,8 @@ def transform_frames(i_am, become, frames=60, interp_func=ease_in_out):
     
     frame = 0
     for mix in interp_func(range(frames)):
+        if mix < 0.7641:
+            continue
         print(mix)
         # Create a blank canvas to paint our image on.
         result = np.zeros_like(src)
@@ -360,6 +363,9 @@ def transform_frames(i_am, become, frames=60, interp_func=ease_in_out):
             transformed_dst_tri = apply_masked_affine(target_mask, dst, dst_tri, interp_tri)
 
             result += ((1 - mix) * transformed_src_tri) + (mix * transformed_dst_tri)
+        
+        # Ensure that any slightly overlapping triangles don't end up adding and darkening the rest of the image. 
+        result = np.clip(result, 0, 1)
 
         save(result, "out/" + i_am + "/" + str(frame) + ".jpg")
         frame += 1
@@ -426,7 +432,10 @@ def transform_frames_many(sequence, frames=60, interp_func=ease_in_out):
                 transformed_dst_tri = apply_masked_affine(target_mask, dst, dst_tri, interp_tri)
 
                 result += ((1 - mix) * transformed_src_tri) + (mix * transformed_dst_tri)
-
+            
+            # Ensure that any slightly overlapping triangles don't end up adding and darkening the rest of the image. 
+            result = np.clip(result, 0, 1)
+            
             save(result, "out/" + sequence[0] + "/" + str(frame) + ".jpg")
             frame += 1
 
@@ -549,12 +558,13 @@ def process(src_name, dst_name, points = 16):
     """ Chain starting from specifying images and how many points to add to generating a full video. """
     src = read_png(src_name, "uint8")
     dst = read_png(dst_name, "uint8")
-    select_points(src, points, src_name)
-    select_points(dst, points, dst_name)
+    #select_points(src, points, src_name)
+    #select_points(dst, points, dst_name)
     
     generate_video(src_name, dst_name)
 
 #process("brandon_fan", "fan", 24)
+#process("nick1200", "sarina", 43)
 
 def generate_gigachad_video():
     """ Hardcodes the process of creating the original Nick-to-Gigachad video. """
@@ -571,8 +581,13 @@ def select_nick_gigachad_points():
     select_points(chad, 36, "gigachad")
 
 #select_nick_gigachad_points()
+
+""" Display the selected points for various images. """
 #display_points("gigachad", "nick")
 #display_points("brandon_fan", "fan")
+#display_points("coleman", "zane")
+#display_points("nick1200", "sarina")
+
 
 def test_serialization():
     selected = select_points(chad, 8, "gigachad")
@@ -620,22 +635,24 @@ show(transform("186a", "population_mean", population = True))"""
 # Extrapolate!
 #transform_frames("gigachad", "nick", 6, interp_func=linear_extrapolate)
 
-def generate_bodybuilder_video(select_points = False):
-    
+def generate_bodybuilder_video(select = False):
+    """ Generate the music video of the bodybuilders' biceps being merged into each other. """ 
+
     # Music video
-    bodybuilders = ["scott", "oliva", "schwarzeneggar", "zane", "coleman", "cutler", "scott"]
-    if select_points:
+    bodybuilders = ["scott", "oliva", "schwarzeneggar", "zane", "coleman", "cutler", "bannout", "columbu", "curry", "dickerson", "heath", "jackson", "poole", "ramy", "rhoden", "yates", "scott"]
+    
+    if select:
         for bodybuilder in bodybuilders:
             img = read_png(bodybuilder)
             if len(img.shape) == 2:
                 img = np.dstack([img, img, img])
             if max(img[0,:, 0]) > 1:
                 img = img / 255
-            select_points(img, 12, bodybuilder)
+            select_points(img, 8, bodybuilder)
     transform_frames_many(bodybuilders, frames=120)
     cmd = ['ffmpeg', '-r', '60', '-i', './out/scott/%d.jpg', '-vf', "pad=ceil(iw/2)*2:ceil(ih/2)*2", 'bodybuilder.mp4']
     retcode = subprocess.call(cmd)
     if not retcode == 0:
         raise ValueError('Error {} executing command: {}'.format(retcode, ' '.join(cmd)))
 
-generate_bodybuilder_video()
+#generate_bodybuilder_video(select=False)
