@@ -199,7 +199,7 @@ def apply_masked_affine(mask, image, src_tri, target_tri, population=True):
     canvas[final_mask[1], final_mask[0]] = image[rr, cc]
     return canvas
 
-def triangle_bool_matrix(triangle, image_shape):
+def bool_mask(triangle, image_shape):
     """ Masks out the pixels inside TRIANGLE. """
     tri_buf = triangle
     if len(image_shape) == 2:
@@ -271,7 +271,7 @@ def transform(i_am, become, jpg = False, population = False):
 
         # Mask out the SRC triangle and apply the matrix that 
         # transforms it into the DST triangle.
-        target_mask = triangle_bool_matrix(dst_tri, src.shape)
+        target_mask = bool_mask(dst_tri, src.shape)
         transformed_tri = apply_masked_affine(target_mask, src, src_tri, dst_tri)
 
         result += transformed_tri
@@ -369,7 +369,7 @@ def transform_frames(i_am, become, frames=60, interp_func=ease_in_out):
 
             # Mask out the SRC triangle and apply the matrix that 
             # transforms it into the DST triangle.
-            target_mask = triangle_bool_matrix(interp_tri, dst.shape)
+            target_mask = bool_mask(interp_tri, dst.shape)
             transformed_src_tri = apply_masked_affine(target_mask, src, src_tri, interp_tri)
             transformed_dst_tri = apply_masked_affine(target_mask, dst, dst_tri, interp_tri)
 
@@ -438,7 +438,7 @@ def transform_frames_many(sequence, frames=60, interp_func=ease_in_out):
 
                 # Mask out the SRC triangle and apply the matrix that 
                 # transforms it into the DST triangle.
-                target_mask = triangle_bool_matrix(interp_tri, dst.shape)
+                target_mask = bool_mask(interp_tri, dst.shape)
                 transformed_src_tri = apply_masked_affine(target_mask, src, src_tri, interp_tri)
                 transformed_dst_tri = apply_masked_affine(target_mask, dst, dst_tri, interp_tri)
 
@@ -484,7 +484,7 @@ def population_average():
 
             # Mask out the SRC triangle and apply the matrix that 
             # transforms it into the DST triangle.
-            target_mask = triangle_bool_matrix(dst_tri, src.shape)
+            target_mask = bool_mask(dst_tri, src.shape)
             #show(target_mask)
             transformed_src_tri = apply_masked_affine(target_mask, src, src_tri, dst_tri)
 
