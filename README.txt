@@ -46,3 +46,7 @@ Bells and Whistles
         points_to_video / generate_video
 
         Demo: generate_bodybuilder_video
+
+I am assuming for now that I am the only participant in the class music video.
+If by chance someone else joins in after my submission, please compensate me
+accordingly.
